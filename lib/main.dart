@@ -662,7 +662,7 @@ class _GameScreenState extends State<GameScreen>
         hint = 'A subir! $hooked/$_maxHooks anzóis';
         break;
       case Phase.airborne:
-        hint = _comboCount > 1 ? '🔥 COMBO x$_comboCount! Continua!' : 'Toca nos peixes → $!';
+        hint = _comboCount > 1 ? '🔥 COMBO x$_comboCount! Continua!' : 'Toca nos peixes para disparar!';
         break;
       default:
         hint = '';
