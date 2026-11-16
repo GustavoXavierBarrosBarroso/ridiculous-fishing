@@ -1,0 +1,23 @@
+name: ridiculous_fishing
+description: Ridiculous Fishing replica - catch fish, shoot them all!
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  shared_preferences: ^2.2.2
+  audioplayers: ^5.2.1
+  flutter_animate: ^4.3.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/
+  fonts:
+    - family: GameFont
+      fonts:
+        - asset: assets/fonts/PressStart2P-Regular.ttf
