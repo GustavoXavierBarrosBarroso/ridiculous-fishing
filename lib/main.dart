@@ -31,22 +31,21 @@ class SpriteManager {
 
   Future<void> loadAll() async {
     final imagePaths = [
+      // Official Billy & Boat
+      'assets/billy/BillyNormalFish@2x.png',
+      'assets/billy/BillyNormalShoot@2x.png',
+      'assets/billy/shop_BG_boat@2x.png',
       // Nautical & Gameplay elements
-      'assets/images/ship.png',
-      'assets/images/fisherman.png',
       'assets/images/hook.png',
       'assets/images/deephook.png',
       'assets/images/wave.png',
       'assets/images/blood.png',
       'assets/images/bullet.png',
-      'assets/images/machineGun.png',
-      'assets/images/singleShot.png',
       // Lures & Chainsaw
       'assets/lures/lure0@2x.png',
-      'assets/lures/lure1@2x.png',
       'assets/lures/lure4@2x.png',
       'assets/lures/lure4_swipe@2x.png',
-      // Authentic Vlambeer fish assets directly extracted from APK
+      // Authentic Vlambeer fish spritesheets
       'assets/original_fish/guppy@2x.png',
       'assets/original_fish/guppyGold@2x.png',
       'assets/original_fish/pike@2x.png',
@@ -153,7 +152,7 @@ class _GameLoaderScreenState extends State<GameLoaderScreen> {
             ),
             const SizedBox(height: 14),
             const Text(
-              'A carregar Vlambeer 1:1 Engine...',
+              'A carregar Vlambeer Animated Sprites...',
               style: TextStyle(color: Colors.white60, fontSize: 12),
             ),
           ],
@@ -174,6 +173,8 @@ class FishData {
   final double minDepth;
   final double maxDepth;
   final double speed;
+  final int cols;
+  final int rows;
   final bool avoidsHook;
   final bool isJelly;
 
@@ -187,12 +188,14 @@ class FishData {
     required this.minDepth,
     required this.maxDepth,
     required this.speed,
+    required this.cols,
+    required this.rows,
     this.avoidsHook = false,
     this.isJelly = false,
   });
 }
 
-// Exactly extracted from Vlambeer _fishopedia.xml, pond.xml and Fish specs
+// Exactly extracted from Vlambeer XML files with frame columns and rows
 const List<FishData> kFishCatalog = [
   FishData(
     key: 'guppy',
@@ -204,6 +207,8 @@ const List<FishData> kFishCatalog = [
     minDepth: 1,
     maxDepth: 100,
     speed: 1.5,
+    cols: 2,
+    rows: 2,
   ),
   FishData(
     key: 'guppyGold',
@@ -215,6 +220,8 @@ const List<FishData> kFishCatalog = [
     minDepth: 30,
     maxDepth: 140,
     speed: 2.2,
+    cols: 2,
+    rows: 2,
     avoidsHook: true,
   ),
   FishData(
@@ -227,6 +234,21 @@ const List<FishData> kFishCatalog = [
     minDepth: 10,
     maxDepth: 180,
     speed: 2.5,
+    cols: 4,
+    rows: 2,
+  ),
+  FishData(
+    key: 'bass',
+    sprite: 'bass@2x.png',
+    displayName: 'Bass',
+    description: 'All about that bass.',
+    value: 18,
+    health: 20,
+    minDepth: 20,
+    maxDepth: 160,
+    speed: 2.0,
+    cols: 4,
+    rows: 2,
   ),
   FishData(
     key: 'goldfish',
@@ -238,6 +260,8 @@ const List<FishData> kFishCatalog = [
     minDepth: 50,
     maxDepth: 170,
     speed: 2.0,
+    cols: 4,
+    rows: 3,
     avoidsHook: true,
   ),
   FishData(
@@ -250,6 +274,8 @@ const List<FishData> kFishCatalog = [
     minDepth: 60,
     maxDepth: 230,
     speed: 0.6,
+    cols: 2,
+    rows: 2,
     isJelly: true,
   ),
   FishData(
@@ -262,6 +288,8 @@ const List<FishData> kFishCatalog = [
     minDepth: 70,
     maxDepth: 250,
     speed: 1.2,
+    cols: 4,
+    rows: 2,
   ),
   FishData(
     key: 'seahorse',
@@ -273,6 +301,8 @@ const List<FishData> kFishCatalog = [
     minDepth: 150,
     maxDepth: 280,
     speed: 1.2,
+    cols: 4,
+    rows: 2,
   ),
   FishData(
     key: 'seahorseGold',
@@ -284,6 +314,8 @@ const List<FishData> kFishCatalog = [
     minDepth: 180,
     maxDepth: 290,
     speed: 2.0,
+    cols: 4,
+    rows: 2,
     avoidsHook: true,
   ),
   FishData(
@@ -296,6 +328,8 @@ const List<FishData> kFishCatalog = [
     minDepth: 100,
     maxDepth: 260,
     speed: 2.8,
+    cols: 4,
+    rows: 2,
   ),
   FishData(
     key: 'frog',
@@ -307,6 +341,8 @@ const List<FishData> kFishCatalog = [
     minDepth: 70,
     maxDepth: 200,
     speed: 2.4,
+    cols: 4,
+    rows: 2,
     avoidsHook: true,
   ),
   FishData(
@@ -319,6 +355,8 @@ const List<FishData> kFishCatalog = [
     minDepth: 220,
     maxDepth: 295,
     speed: 1.0,
+    cols: 4,
+    rows: 2,
   ),
   FishData(
     key: 'jellyBig',
@@ -330,6 +368,8 @@ const List<FishData> kFishCatalog = [
     minDepth: 160,
     maxDepth: 280,
     speed: 0.4,
+    cols: 2,
+    rows: 2,
     isJelly: true,
   ),
   FishData(
@@ -342,6 +382,8 @@ const List<FishData> kFishCatalog = [
     minDepth: 290,
     maxDepth: 310,
     speed: 1.8,
+    cols: 5,
+    rows: 4,
   ),
 ];
 
@@ -357,6 +399,7 @@ class ActiveFish {
   double hookOffsetX = 0;
   double hookOffsetY = 0;
   double rotation = 0;
+  double animTimer = 0;
   int currentHp;
 
   ActiveFish({
@@ -423,8 +466,6 @@ class _RidiculousFishingGameState extends State<RidiculousFishingGame>
 
   // Fishopedia discovered flags
   final Set<String> _discoveredFish = {};
-
-  // Store owned items
   final Set<String> _ownedItems = {'reel_0', 'gun_0', 'lure_0'};
 
   // Movement & Camera
@@ -533,8 +574,9 @@ class _RidiculousFishingGameState extends State<RidiculousFishingGame>
       }
     }
 
-    // Free fish swimming
+    // Free fish swimming & animation ticker
     for (final f in _fishes) {
+      f.animTimer += dt;
       if (!f.caught && _phase != GamePhase.airborne) {
         if (f.data.avoidsHook && (_phase == GamePhase.descending || _phase == GamePhase.ascending)) {
           final dx = f.x - _hookX;
@@ -1094,7 +1136,9 @@ class _RidiculousFishingGameState extends State<RidiculousFishingGame>
                 width: 44,
                 height: 44,
                 child: discovered
-                    ? Image.asset('assets/original_fish/${f.sprite}')
+                    ? CustomPaint(
+                        painter: _FishPreviewPainter(f),
+                      )
                     : const Icon(Icons.help_outline, color: Colors.white24, size: 28),
               ),
               const SizedBox(width: 12),
@@ -1275,6 +1319,26 @@ class _RidiculousFishingGameState extends State<RidiculousFishingGame>
   }
 }
 
+// ─────────────────────────── FISHOPEDIA PREVIEW ─────────────────────────────
+class _FishPreviewPainter extends CustomPainter {
+  final FishData fish;
+  _FishPreviewPainter(this.fish);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final sprite = SpriteManager.instance.get(fish.sprite);
+    if (sprite == null) return;
+    final frameW = sprite.width / fish.cols;
+    final frameH = sprite.height / fish.rows;
+    final srcRect = Rect.fromLTWH(0, 0, frameW, frameH);
+    final destRect = Rect.fromLTWH(0, 0, size.width, size.height);
+    canvas.drawImageRect(sprite, srcRect, destRect, Paint());
+  }
+
+  @override
+  bool shouldRepaint(_) => false;
+}
+
 // ─────────────────────────── GAME CANVAS PAINTER ────────────────────────────
 class _RidiculousPainter extends CustomPainter {
   final List<ActiveFish> fishes;
@@ -1363,7 +1427,7 @@ class _RidiculousPainter extends CustomPainter {
       );
     }
 
-    // 4. ACTIVE FISHES
+    // 4. ACTIVE ANIMATED FISHES (SPRITESHEET FRAME SLICING!)
     for (final f in fishes) {
       final screenY = worldToScreenY(f.y);
       if (screenY < -120 || screenY > size.height + 120) continue;
@@ -1377,14 +1441,18 @@ class _RidiculousPainter extends CustomPainter {
         final facingLeft = f.vx < 0;
         if (facingLeft) canvas.scale(-1, 1);
 
-        final destW = sprite.width.toDouble() * 0.7;
-        final destH = sprite.height.toDouble() * 0.7;
-        canvas.drawImageRect(
-          sprite,
-          Rect.fromLTWH(0, 0, sprite.width.toDouble(), sprite.height.toDouble()),
-          Rect.fromCenter(center: Offset.zero, width: destW, height: destH),
-          Paint(),
-        );
+        // Calculate active animation frame from Vlambeer XML grid specs
+        final totalFrames = f.data.cols * f.data.rows;
+        final frameIndex = ((f.animTimer * 9.0).floor()) % totalFrames;
+        final frameCol = frameIndex % f.data.cols;
+        final frameRow = frameIndex ~/ f.data.cols;
+        final frameW = sprite.width / f.data.cols;
+        final frameH = sprite.height / f.data.rows;
+
+        final srcRect = Rect.fromLTWH(frameCol * frameW, frameRow * frameH, frameW, frameH);
+        final destRect = Rect.fromCenter(center: Offset.zero, width: frameW * 0.9, height: frameH * 0.9);
+
+        canvas.drawImageRect(sprite, srcRect, destRect, Paint());
         canvas.restore();
       }
     }
@@ -1411,19 +1479,49 @@ class _RidiculousPainter extends CustomPainter {
       }
     }
 
-    // 6. BOAT & WEAPON
-    final shipSprite = mgr.get('ship.png');
+    // 6. OFFICIAL BOAT & OFFICIAL BILLY ANIMATIONS!
+    final boatSprite = mgr.get('shop_BG_boat@2x.png') ?? mgr.get('ship.png');
     final bx = size.width * 0.5;
     final by = sy0;
-    if (shipSprite != null) {
-      final sw = 140.0;
-      final sh = sw * (shipSprite.height / shipSprite.width);
+
+    if (boatSprite != null) {
+      final bw = 150.0;
+      final bh = bw * (boatSprite.height / boatSprite.width);
       canvas.drawImageRect(
-        shipSprite,
-        Rect.fromLTWH(0, 0, shipSprite.width.toDouble(), shipSprite.height.toDouble()),
-        Rect.fromCenter(center: Offset(bx, by - 20), width: sw, height: sh),
+        boatSprite,
+        Rect.fromLTWH(0, 0, boatSprite.width.toDouble(), boatSprite.height.toDouble()),
+        Rect.fromCenter(center: Offset(bx, by - 12), width: bw, height: bh),
         Paint(),
       );
+    }
+
+    // Official Billy sitting in boat or shooting up into the sky!
+    final billySprite = (phase == GamePhase.airborne)
+        ? mgr.get('BillyNormalShoot@2x.png')
+        : mgr.get('BillyNormalFish@2x.png');
+
+    if (billySprite != null) {
+      if (phase == GamePhase.airborne) {
+        // Billy pointing gun straight up
+        final bw = 42.0;
+        final bh = bw * (billySprite.height / billySprite.width);
+        canvas.drawImageRect(
+          billySprite,
+          Rect.fromLTWH(0, 0, billySprite.width.toDouble(), billySprite.height.toDouble()),
+          Rect.fromCenter(center: Offset(bx + 10, by - 46), width: bw, height: bh),
+          Paint(),
+        );
+      } else {
+        // Billy sitting with fishing rod
+        final bw = 68.0;
+        final bh = bw * (billySprite.height / billySprite.width);
+        canvas.drawImageRect(
+          billySprite,
+          Rect.fromLTWH(0, 0, billySprite.width.toDouble(), billySprite.height.toDouble()),
+          Rect.fromCenter(center: Offset(bx + 6, by - 40), width: bw, height: bh),
+          Paint(),
+        );
+      }
     }
 
     // 7. WEAPON PELLETS / BULLETS
