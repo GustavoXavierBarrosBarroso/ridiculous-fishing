@@ -1,5 +1,5 @@
 name: ridiculous_fishing
-description: Ridiculous Fishing replica in Flutter - catch fish, shoot them all!
+description: Ridiculous Fishing replica with authentic original sprites and mechanics!
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -13,3 +13,10 @@ dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/fonts/
+  fonts:
+    - family: Villa
+      fonts:
+        - asset: assets/fonts/Villa.ttf
