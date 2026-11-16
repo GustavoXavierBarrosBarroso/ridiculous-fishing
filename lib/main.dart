@@ -31,7 +31,7 @@ class SpriteManager {
 
   Future<void> loadAll() async {
     final imagePaths = [
-      // Base assets
+      // Nautical & Gameplay elements
       'assets/images/ship.png',
       'assets/images/fisherman.png',
       'assets/images/hook.png',
@@ -41,6 +41,11 @@ class SpriteManager {
       'assets/images/bullet.png',
       'assets/images/machineGun.png',
       'assets/images/singleShot.png',
+      // Lures & Chainsaw
+      'assets/lures/lure0@2x.png',
+      'assets/lures/lure1@2x.png',
+      'assets/lures/lure4@2x.png',
+      'assets/lures/lure4_swipe@2x.png',
       // Authentic Vlambeer fish assets directly extracted from APK
       'assets/original_fish/guppy@2x.png',
       'assets/original_fish/guppyGold@2x.png',
@@ -61,6 +66,8 @@ class SpriteManager {
       'assets/original_fish/bass@2x.png',
       'assets/original_fish/cuttlefish@2x.png',
       'assets/original_fish/flounder@2x.png',
+      'assets/original_fish/seaTurtle@2x.png',
+      'assets/original_fish/frog@2x.png',
     ];
 
     for (final path in imagePaths) {
@@ -71,9 +78,7 @@ class SpriteManager {
         final frame = await codec.getNextFrame();
         final key = path.split('/').last;
         _cache[key] = frame.image;
-      } catch (_) {
-        // Fallback gracefully if single image fails
-      }
+      } catch (_) {}
     }
   }
 }
@@ -95,7 +100,7 @@ class _GameLoaderScreenState extends State<GameLoaderScreen> {
   }
 
   Future<void> _init() async {
-    setState(() => _progress = 0.3);
+    setState(() => _progress = 0.4);
     await SpriteManager.instance.loadAll();
     setState(() => _progress = 1.0);
     await Future.delayed(const Duration(milliseconds: 300));
@@ -148,7 +153,7 @@ class _GameLoaderScreenState extends State<GameLoaderScreen> {
             ),
             const SizedBox(height: 14),
             const Text(
-              'A carregar Vlambeer APK Assets...',
+              'A carregar Vlambeer 1:1 Engine...',
               style: TextStyle(color: Colors.white60, fontSize: 12),
             ),
           ],
@@ -158,21 +163,25 @@ class _GameLoaderScreenState extends State<GameLoaderScreen> {
   }
 }
 
-// ─────────────────────────── ORIGINAL FISH SPECS ────────────────────────────
-class FishSpec {
+// ─────────────────────────── DATA STRUCTURES ────────────────────────────────
+class FishData {
+  final String key;
   final String sprite;
-  final String name;
+  final String displayName;
+  final String description;
   final int value;
   final int health;
   final double minDepth;
   final double maxDepth;
   final double speed;
   final bool avoidsHook;
-  final bool isJelly; // causes penalty if shot
+  final bool isJelly;
 
-  const FishSpec({
+  const FishData({
+    required this.key,
     required this.sprite,
-    required this.name,
+    required this.displayName,
+    required this.description,
     required this.value,
     required this.health,
     required this.minDepth,
@@ -183,73 +192,204 @@ class FishSpec {
   });
 }
 
-// Exact specs directly from Vlambeer's pond.xml and Fish XML files
-const List<FishSpec> kOriginalSpecs = [
-  FishSpec(sprite: 'guppy@2x.png', name: 'Guppy', value: 3, health: 3, minDepth: 1, maxDepth: 100, speed: 1.5),
-  FishSpec(sprite: 'guppyGold@2x.png', name: 'Golden Guppy', value: 15, health: 6, minDepth: 30, maxDepth: 140, speed: 2.2, avoidsHook: true),
-  FishSpec(sprite: 'bass@2x.png', name: 'Bass', value: 8, health: 8, minDepth: 20, maxDepth: 150, speed: 1.8),
-  FishSpec(sprite: 'pike@2x.png', name: 'Pike', value: 10, health: 12, minDepth: 30, maxDepth: 180, speed: 2.5),
-  FishSpec(sprite: 'goldfish@2x.png', name: 'Goldfish', value: 30, health: 8, minDepth: 50, maxDepth: 170, speed: 2.0, avoidsHook: true),
-  FishSpec(sprite: 'jellySmall@2x.png', name: 'Jellyfish', value: -5, health: 1, minDepth: 60, maxDepth: 230, speed: 0.6, isJelly: true),
-  FishSpec(sprite: 'jellyBig@2x.png', name: 'Big Jellyfish', value: -15, health: 1, minDepth: 160, maxDepth: 280, speed: 0.4, isJelly: true),
-  FishSpec(sprite: 'seahorse@2x.png', name: 'Seahorse', value: 20, health: 6, minDepth: 150, maxDepth: 280, speed: 1.2),
-  FishSpec(sprite: 'seahorseGold@2x.png', name: 'Golden Seahorse', value: 60, health: 12, minDepth: 180, maxDepth: 290, speed: 2.0, avoidsHook: true),
-  FishSpec(sprite: 'eel@2x.png', name: 'Electric Eel', value: 25, health: 14, minDepth: 100, maxDepth: 260, speed: 2.8),
-  FishSpec(sprite: 'boneFish@2x.png', name: 'Bone Fish', value: 35, health: 16, minDepth: 140, maxDepth: 280, speed: 1.7),
-  FishSpec(sprite: 'anglerFish@2x.png', name: 'Angler Fish', value: 50, health: 20, minDepth: 220, maxDepth: 350, speed: 1.0),
-  FishSpec(sprite: 'dolphin@2x.png', name: 'Dolphin', value: 120, health: 40, minDepth: 100, maxDepth: 300, speed: 3.2, avoidsHook: true),
-  FishSpec(sprite: 'gnarwal@2x.png', name: 'Gnarwal (Boss)', value: 800, health: 140, minDepth: 290, maxDepth: 400, speed: 2.0),
+// Exactly extracted from Vlambeer _fishopedia.xml, pond.xml and Fish specs
+const List<FishData> kFishCatalog = [
+  FishData(
+    key: 'guppy',
+    sprite: 'guppy@2x.png',
+    displayName: 'Jim',
+    description: 'This one with the chin was my friend once.',
+    value: 3,
+    health: 3,
+    minDepth: 1,
+    maxDepth: 100,
+    speed: 1.5,
+  ),
+  FishData(
+    key: 'guppyGold',
+    sprite: 'guppyGold@2x.png',
+    displayName: 'Golden Jim',
+    description: 'A richer version of Jim.',
+    value: 15,
+    health: 6,
+    minDepth: 30,
+    maxDepth: 140,
+    speed: 2.2,
+    avoidsHook: true,
+  ),
+  FishData(
+    key: 'pike',
+    sprite: 'pike@2x.png',
+    displayName: 'Turnpike',
+    description: 'Rides a bike.',
+    value: 10,
+    health: 12,
+    minDepth: 10,
+    maxDepth: 180,
+    speed: 2.5,
+  ),
+  FishData(
+    key: 'goldfish',
+    sprite: 'goldfish@2x.png',
+    displayName: 'Goldfish',
+    description: 'A fish made out of gold colored fish.',
+    value: 30,
+    health: 8,
+    minDepth: 50,
+    maxDepth: 170,
+    speed: 2.0,
+    avoidsHook: true,
+  ),
+  FishData(
+    key: 'jellySmall',
+    sprite: 'jellySmall@2x.png',
+    displayName: 'Boy-o-War',
+    description: 'Based on the 2010 original. Makes you lose money!',
+    value: -5,
+    health: 1,
+    minDepth: 60,
+    maxDepth: 230,
+    speed: 0.6,
+    isJelly: true,
+  ),
+  FishData(
+    key: 'seaTurtle',
+    sprite: 'seaTurtle@2x.png',
+    displayName: 'Sea Turtle',
+    description: 'A very weird fish.',
+    value: 25,
+    health: 18,
+    minDepth: 70,
+    maxDepth: 250,
+    speed: 1.2,
+  ),
+  FishData(
+    key: 'seahorse',
+    sprite: 'seahorse@2x.png',
+    displayName: 'Day Horse',
+    description: 'I wonder why little girls never get obsessed with seahorses...',
+    value: 20,
+    health: 6,
+    minDepth: 150,
+    maxDepth: 280,
+    speed: 1.2,
+  ),
+  FishData(
+    key: 'seahorseGold',
+    sprite: 'seahorseGold@2x.png',
+    displayName: 'Night Horse',
+    description: 'Hey rich girls.',
+    value: 60,
+    health: 12,
+    minDepth: 180,
+    maxDepth: 290,
+    speed: 2.0,
+    avoidsHook: true,
+  ),
+  FishData(
+    key: 'eel',
+    sprite: 'eel@2x.png',
+    displayName: 'Eel',
+    description: 'Basically just a snake.',
+    value: 35,
+    health: 14,
+    minDepth: 100,
+    maxDepth: 260,
+    speed: 2.8,
+  ),
+  FishData(
+    key: 'frog',
+    sprite: 'frog@2x.png',
+    displayName: 'Froggo',
+    description: 'Very rare, tastes good with some garlic.',
+    value: 90,
+    health: 10,
+    minDepth: 70,
+    maxDepth: 200,
+    speed: 2.4,
+    avoidsHook: true,
+  ),
+  FishData(
+    key: 'anglerFish',
+    sprite: 'anglerFish@2x.png',
+    displayName: 'Anglerfish',
+    description: 'A fish made of angles.',
+    value: 50,
+    health: 20,
+    minDepth: 220,
+    maxDepth: 295,
+    speed: 1.0,
+  ),
+  FishData(
+    key: 'jellyBig',
+    sprite: 'jellyBig@2x.png',
+    displayName: 'Man-o-War',
+    description: 'R u jelly? Severe fine if shot!',
+    value: -25,
+    health: 1,
+    minDepth: 160,
+    maxDepth: 280,
+    speed: 0.4,
+    isJelly: true,
+  ),
+  FishData(
+    key: 'gnarwal',
+    sprite: 'gnarwal@2x.png',
+    displayName: 'Gnarwal (Boss)',
+    description: 'Long in the tooth. Chillin at the bottom of Home Waters.',
+    value: 800,
+    health: 140,
+    minDepth: 290,
+    maxDepth: 310,
+    speed: 1.8,
+  ),
 ];
 
-// ─────────────────────────── MODELS ─────────────────────────────────────────
-enum GamePhase { menu, descending, ascending, airborne, gameOver }
+// ─────────────────────────── GAMEPLAY ENTITIES ──────────────────────────────
+enum GamePhase { phoneMenu, descending, ascending, airborne, summary }
 
-class FishEntity {
+class ActiveFish {
   final int id;
-  final FishSpec spec;
-
-  double x;
-  double y;
-  double vx;
+  final FishData data;
+  double x, y, vx;
   double vy = 0;
-  bool isCaught = false;
-  double caughtOffsetX = 0;
-  double caughtOffsetY = 0;
+  bool caught = false;
+  double hookOffsetX = 0;
+  double hookOffsetY = 0;
   double rotation = 0;
-  int currentHealth;
+  int currentHp;
 
-  FishEntity({
+  ActiveFish({
     required this.id,
-    required this.spec,
+    required this.data,
     required this.x,
     required this.y,
     required this.vx,
-  }) : currentHealth = spec.health;
+  }) : currentHp = data.health;
 }
 
-class BloodSplash {
-  Offset position;
-  double time = 0;
-  final double maxTime = 1.0;
-  BloodSplash(this.position);
-}
-
-class BulletFx {
+class ShotPellet {
   Offset from;
   Offset to;
   double t = 0;
-  BulletFx(this.from, this.to);
+  ShotPellet(this.from, this.to);
 }
 
-class PopupText {
-  Offset position;
+class SplashFx {
+  Offset pos;
+  double t = 0;
+  SplashFx(this.pos);
+}
+
+class ScorePopup {
+  Offset pos;
   String text;
   Color color;
   double t = 0;
-  PopupText(this.position, this.text, this.color);
+  ScorePopup(this.pos, this.text, this.color);
 }
 
-// ─────────────────────────── MAIN GAME WIDGET ───────────────────────────────
+// ─────────────────────────── MAIN GAME STATE ────────────────────────────────
 class RidiculousFishingGame extends StatefulWidget {
   const RidiculousFishingGame({super.key});
 
@@ -264,34 +404,56 @@ class _RidiculousFishingGameState extends State<RidiculousFishingGame>
   Size _screenSize = Size.zero;
   final Random _rnd = Random();
 
-  GamePhase _phase = GamePhase.menu;
+  GamePhase _phase = GamePhase.phoneMenu;
+  int _phoneTab = 0; // 0: Home/Play, 1: Fishopedia, 2: Shop, 3: Byrdr
+
+  // Player Stats & Gear (Official IDs from storeContents.xml)
   int _money = 0;
-  int _sessionScore = 0;
-  int _combo = 0;
+  int _sessionGain = 0;
+  int _comboCount = 0;
   double _comboTimer = 0;
 
-  // Upgrades
-  int _depthLvl = 0; // max depth
-  int _hooksLvl = 0; // max caught
-  int _gunLvl = 0;   // 0: Pistol, 1: MachineGun, 2: Shotgun
+  // Selected Equipment
+  int _selectedReel = 0; // 0: 50m, 1: 100m, 2: 200m, 3: 300m, 4: 500m
+  int _selectedGun = 0;  // 0: Pistol, 1: Shotgun, 2: Uzi, 3: Magnum, 4: Bazooka
+  bool _hasChainsawLure = false;
+  bool _isChainsawActive = false;
+  double _fuel = 300.0;
+  final double _maxFuel = 300.0;
 
-  double get _maxDepth => 300.0 + 150.0 * _depthLvl;
-  int get _maxCaughtFish => 4 + 3 * _hooksLvl;
-  double get _hookRadius => 24.0;
+  // Fishopedia discovered flags
+  final Set<String> _discoveredFish = {};
 
-  // Position trackers
+  // Store owned items
+  final Set<String> _ownedItems = {'reel_0', 'gun_0', 'lure_0'};
+
+  // Movement & Camera
   double _hookX = 0;
   double _hookY = 0;
   double _targetHookX = 0;
   double _cameraY = 0;
   double _waveOffset = 0;
-  bool _waveDirectionLeft = true;
+  bool _waveLeft = true;
 
-  // Entities
-  final List<FishEntity> _fishes = [];
-  final List<BloodSplash> _splashes = [];
-  final List<BulletFx> _bullets = [];
-  final List<PopupText> _popups = [];
+  // Active game entities
+  final List<ActiveFish> _fishes = [];
+  final List<ShotPellet> _pellets = [];
+  final List<SplashFx> _splashes = [];
+  final List<ScorePopup> _popups = [];
+
+  // Derived properties from tweaks.xml
+  double get _maxDepthMeters {
+    switch (_selectedReel) {
+      case 0: return 50.0;
+      case 1: return 100.0;
+      case 2: return 200.0;
+      case 3: return 300.0;
+      case 4: return 500.0;
+      default: return 50.0;
+    }
+  }
+
+  int get _maxCaughtFish => 4 + _selectedReel * 2;
 
   late SharedPreferences _prefs;
   bool _ready = false;
@@ -300,7 +462,7 @@ class _RidiculousFishingGameState extends State<RidiculousFishingGame>
   void initState() {
     super.initState();
     _ticker = createTicker(_tick)..start();
-    _loadState();
+    _loadSave();
   }
 
   @override
@@ -309,24 +471,34 @@ class _RidiculousFishingGameState extends State<RidiculousFishingGame>
     super.dispose();
   }
 
-  Future<void> _loadState() async {
+  Future<void> _loadSave() async {
     _prefs = await SharedPreferences.getInstance();
     setState(() {
       _money = _prefs.getInt('rf_money') ?? 0;
-      _depthLvl = _prefs.getInt('rf_depth') ?? 0;
-      _hooksLvl = _prefs.getInt('rf_hooks') ?? 0;
-      _gunLvl = _prefs.getInt('rf_gun') ?? 0;
+      _selectedReel = _prefs.getInt('rf_reel') ?? 0;
+      _selectedGun = _prefs.getInt('rf_gun') ?? 0;
+      _hasChainsawLure = _prefs.getBool('rf_chainsaw') ?? false;
+
+      final disc = _prefs.getStringList('rf_discovered') ?? [];
+      _discoveredFish.addAll(disc);
+
+      final owned = _prefs.getStringList('rf_owned') ?? ['reel_0', 'gun_0', 'lure_0'];
+      _ownedItems.addAll(owned);
+
       _ready = true;
     });
   }
 
-  Future<void> _saveState() async {
+  Future<void> _saveGame() async {
     await _prefs.setInt('rf_money', _money);
-    await _prefs.setInt('rf_depth', _depthLvl);
-    await _prefs.setInt('rf_hooks', _hooksLvl);
-    await _prefs.setInt('rf_gun', _gunLvl);
+    await _prefs.setInt('rf_reel', _selectedReel);
+    await _prefs.setInt('rf_gun', _selectedGun);
+    await _prefs.setBool('rf_chainsaw', _hasChainsawLure);
+    await _prefs.setStringList('rf_discovered', _discoveredFish.toList());
+    await _prefs.setStringList('rf_owned', _ownedItems.toList());
   }
 
+  // ─────────────────────────── TICK & GAME LOOP ─────────────────────────────
   void _tick(Duration d) {
     final dt = ((d - _lastTick).inMicroseconds / 1e6).clamp(0.0, 0.04).toDouble();
     _lastTick = d;
@@ -336,57 +508,63 @@ class _RidiculousFishingGameState extends State<RidiculousFishingGame>
     setState(() {});
   }
 
-  // ─────────────────────────── GAME UPDATE ──────────────────────────────────
   void _update(double dt) {
-    // Wave oscillation
-    if (_waveDirectionLeft) {
-      _waveOffset -= 30 * dt;
-      if (_waveOffset < -25) _waveDirectionLeft = false;
+    // Wave animation
+    if (_waveLeft) {
+      _waveOffset -= 28 * dt;
+      if (_waveOffset < -24) _waveLeft = false;
     } else {
-      _waveOffset += 30 * dt;
-      if (_waveOffset > 25) _waveDirectionLeft = true;
+      _waveOffset += 28 * dt;
+      if (_waveOffset > 24) _waveLeft = true;
     }
 
     // Combo timer
-    if (_combo > 0) {
+    if (_comboCount > 0) {
       _comboTimer -= dt;
-      if (_comboTimer <= 0) _combo = 0;
+      if (_comboTimer <= 0) _comboCount = 0;
     }
 
-    // Swimming fish in sea
+    // Fuel consumption if chainsaw active
+    if (_isChainsawActive && _phase == GamePhase.descending) {
+      _fuel -= 70 * dt;
+      if (_fuel <= 0) {
+        _fuel = 0;
+        _isChainsawActive = false;
+      }
+    }
+
+    // Free fish swimming
     for (final f in _fishes) {
-      if (!f.isCaught && _phase != GamePhase.airborne) {
-        // Dodge hook if species avoids
-        if (f.spec.avoidsHook && (_phase == GamePhase.descending || _phase == GamePhase.ascending)) {
+      if (!f.caught && _phase != GamePhase.airborne) {
+        if (f.data.avoidsHook && (_phase == GamePhase.descending || _phase == GamePhase.ascending)) {
           final dx = f.x - _hookX;
           final dy = f.y - _hookY;
           final dist = sqrt(dx * dx + dy * dy);
           if (dist < 100) {
-            f.vx += (dx > 0 ? 1 : -1) * 200 * dt;
+            f.vx += (dx > 0 ? 1 : -1) * 220 * dt;
             f.vx = f.vx.clamp(-180.0, 180.0);
           }
         }
-
         f.x += f.vx * dt;
         if (f.x < -80) f.x = _screenSize.width + 80;
         if (f.x > _screenSize.width + 80) f.x = -80;
       }
     }
 
-    // Hook movement
+    // Hook logic
     if (_phase == GamePhase.descending || _phase == GamePhase.ascending) {
       _hookX += (_targetHookX - _hookX) * min(1.0, dt * 9);
       _hookX = _hookX.clamp(20.0, _screenSize.width - 20.0);
 
       if (_phase == GamePhase.descending) {
-        _hookY += (240 + _depthLvl * 25) * dt;
+        _hookY += (240 + _selectedReel * 20) * dt;
         _checkHookCollisions();
-        if (_hookY >= _maxDepth) {
+        if (_hookY >= _maxDepthMeters) {
           _phase = GamePhase.ascending;
           HapticFeedback.heavyImpact();
         }
       } else if (_phase == GamePhase.ascending) {
-        _hookY -= (300 + _depthLvl * 30) * dt;
+        _hookY -= (320 + _selectedReel * 25) * dt;
         _checkHookCollisions();
         if (_hookY <= 0) {
           _hookY = 0;
@@ -394,38 +572,40 @@ class _RidiculousFishingGameState extends State<RidiculousFishingGame>
         }
       }
 
-      // Drag caught fish
-      for (final f in _fishes.where((f) => f.isCaught)) {
-        f.x = _hookX + f.caughtOffsetX;
-        f.y = _hookY + f.caughtOffsetY;
+      // Drag hooked fish
+      for (final f in _fishes.where((f) => f.caught)) {
+        f.x = _hookX + f.hookOffsetX;
+        f.y = _hookY + f.hookOffsetY;
       }
 
-      // Camera follows hook
+      // Smooth camera
       final targetCam = max(0.0, _hookY - _screenSize.height * 0.35);
       _cameraY += (targetCam - _cameraY) * min(1.0, dt * 7);
     } else if (_phase == GamePhase.airborne) {
-      // Airborne physics
+      // Physics tuned exactly to tweaks.xml:
+      // launchGravity: 0.06 (scaled), returnToWaterGravity: 1.3
       for (final f in _fishes) {
-        f.vy += 600 * dt; // Gravity
+        final gravity = f.vy < 0 ? 240.0 : 650.0;
+        f.vy += gravity * dt;
         f.y += f.vy * dt;
         f.x += f.vx * dt;
-        f.rotation += (f.vx > 0 ? 3 : -3) * dt;
+        f.rotation += (f.vx > 0 ? 3.5 : -3.5) * dt;
 
-        // Bounce off screen walls
+        // Wall bounce
         if (f.x < 30 || f.x > _screenSize.width - 30) f.vx = -f.vx * 0.8;
       }
 
-      // Remove fish that fell below water line
+      // Drop back in ocean
       _fishes.removeWhere((f) => f.y > 60 && f.vy > 0);
       if (_fishes.isEmpty) {
-        _phase = GamePhase.gameOver;
-        _money += _sessionScore;
+        _phase = GamePhase.summary;
+        _money += _sessionGain;
         if (_money < 0) _money = 0;
-        _saveState();
+        _saveGame();
         HapticFeedback.mediumImpact();
       }
 
-      // Camera smoothly centers around highest fish
+      // Camera centering on airborne fish
       if (_fishes.isNotEmpty) {
         final highestY = _fishes.map((f) => f.y).reduce(min);
         final targetCam = min(0.0, highestY - 140.0);
@@ -437,36 +617,44 @@ class _RidiculousFishingGameState extends State<RidiculousFishingGame>
       _cameraY += (0.0 - _cameraY) * min(1.0, dt * 6);
     }
 
-    // Splashes & Particles
-    for (final s in _splashes) s.time += dt;
-    _splashes.removeWhere((s) => s.time >= s.maxTime);
+    // Effect timers
+    for (final s in _splashes) s.t += dt;
+    _splashes.removeWhere((s) => s.t >= 1.0);
 
-    // Bullet animations
-    for (final b in _bullets) b.t += dt;
-    _bullets.removeWhere((b) => b.t >= 0.12);
+    for (final b in _pellets) b.t += dt;
+    _pellets.removeWhere((b) => b.t >= 0.12);
 
-    // Floating texts
     for (final p in _popups) p.t += dt;
     _popups.removeWhere((p) => p.t >= 1.0);
   }
 
   void _checkHookCollisions() {
-    int caughtCount = _fishes.where((f) => f.isCaught).length;
+    int caughtCount = _fishes.where((f) => f.caught).length;
     for (final f in _fishes) {
-      if (f.isCaught || caughtCount >= _maxCaughtFish) continue;
+      if (f.caught || caughtCount >= _maxCaughtFish) continue;
 
       final dx = f.x - _hookX;
       final dy = f.y - _hookY;
       final dist = sqrt(dx * dx + dy * dy);
 
-      if (dist < _hookRadius + 22.0) {
-        f.isCaught = true;
-        f.caughtOffsetX = (_rnd.nextDouble() - 0.5) * 40;
-        f.caughtOffsetY = 15 + _rnd.nextDouble() * 30;
+      if (dist < 26.0) {
+        // If chainsaw active on descent -> shred through fish without hooking!
+        if (_isChainsawActive && _phase == GamePhase.descending) {
+          f.currentHp = 0;
+          _splashes.add(SplashFx(Offset(f.x, f.y)));
+          _fishes.remove(f);
+          HapticFeedback.lightImpact();
+          break;
+        }
+
+        f.caught = true;
+        f.hookOffsetX = (_rnd.nextDouble() - 0.5) * 36;
+        f.hookOffsetY = 14 + _rnd.nextDouble() * 26;
         caughtCount++;
+        _discoveredFish.add(f.data.key);
         HapticFeedback.selectionClick();
 
-        // If touching fish on descend -> trigger ascension immediately!
+        // Reaching first fish on descent triggers ascension
         if (_phase == GamePhase.descending) {
           _phase = GamePhase.ascending;
         }
@@ -475,102 +663,139 @@ class _RidiculousFishingGameState extends State<RidiculousFishingGame>
   }
 
   void _launchAirborne() {
-    final caught = _fishes.where((f) => f.isCaught).toList();
+    final caught = _fishes.where((f) => f.caught).toList();
     _fishes.clear();
     _fishes.addAll(caught);
 
     if (_fishes.isEmpty) {
-      _phase = GamePhase.gameOver;
+      _phase = GamePhase.summary;
       return;
     }
 
     for (final f in _fishes) {
       f.y = -10;
-      f.vy = -(440 + _rnd.nextDouble() * 260);
+      f.vy = -(460 + _rnd.nextDouble() * 260);
       f.vx = (_rnd.nextDouble() - 0.5) * 260;
     }
     _phase = GamePhase.airborne;
     HapticFeedback.heavyImpact();
   }
 
-  // ─────────────────────────── SHOOTING ─────────────────────────────────────
-  void _shoot(Offset screenPos) {
-    final worldY = screenPos.dy - (_screenSize.height * 0.38) + _cameraY;
-    final worldPos = Offset(screenPos.dx, worldY);
+  // ─────────────────────────── BALLISTIC SHOOTING ───────────────────────────
+  void _fireWeapon(Offset tapPos) {
+    final worldY = tapPos.dy - (_screenSize.height * 0.38) + _cameraY;
+    final worldPos = Offset(tapPos.dx, worldY);
     final boatPos = Offset(_screenSize.width * 0.5 + 40, -40);
 
-    FishEntity? hitFish;
-    double closest = double.infinity;
-
-    for (final f in _fishes) {
-      final d = (Offset(f.x, f.y) - worldPos).distance;
-      if (d < 50 && d < closest) {
-        closest = d;
-        hitFish = f;
+    // Weapon mechanics matching tweaks.xml
+    if (_selectedGun == 1) {
+      // SHOTGUN: 9 pellets in spread cone (shotgunSpread: 160)
+      for (int i = 0; i < 9; i++) {
+        final spreadX = (_rnd.nextDouble() - 0.5) * 160;
+        final spreadY = (_rnd.nextDouble() - 0.5) * 80;
+        final target = worldPos.translate(spreadX, spreadY);
+        _pellets.add(ShotPellet(boatPos, target));
+        _damageAt(target, 5);
       }
+    } else if (_selectedGun == 2) {
+      // UZI: Rapid burst (uziSpread: 150)
+      for (int i = 0; i < 3; i++) {
+        final spreadX = (_rnd.nextDouble() - 0.5) * 50;
+        final target = worldPos.translate(spreadX, 0);
+        _pellets.add(ShotPellet(boatPos, target));
+        _damageAt(target, 5);
+      }
+    } else if (_selectedGun == 3) {
+      // MAGNUM: Heavy single punch (magnumDamage: 18)
+      _pellets.add(ShotPellet(boatPos, worldPos));
+      _damageAt(worldPos, 18);
+    } else if (_selectedGun == 4) {
+      // BAZOOKA: Massive area explosion (rpgDamage: 36, rpgExplosionSize: 80)
+      _pellets.add(ShotPellet(boatPos, worldPos));
+      _areaDamage(worldPos, 80, 36);
+    } else {
+      // PISTOL: Ol' Trusty (pistolDamage: 3)
+      _pellets.add(ShotPellet(boatPos, worldPos));
+      _damageAt(worldPos, 3);
     }
 
-    if (hitFish != null) {
-      final damage = _gunLvl == 0 ? 10 : (_gunLvl == 1 ? 25 : 50);
-      hitFish.currentHealth -= damage;
+    HapticFeedback.mediumImpact();
+  }
 
-      _splashes.add(BloodSplash(Offset(hitFish.x, hitFish.y)));
-      _bullets.add(BulletFx(boatPos, Offset(hitFish.x, hitFish.y)));
-
-      if (hitFish.currentHealth <= 0) {
-        _fishes.remove(hitFish);
-
-        if (hitFish.spec.isJelly) {
-          // Jellyfish penalty!
-          _sessionScore += hitFish.spec.value;
-          _popups.add(PopupText(
-            Offset(hitFish.x, hitFish.y),
-            '${hitFish.spec.value} \$',
-            const Color(0xFFFF1744),
-          ));
-        } else {
-          _combo++;
-          _comboTimer = 1.3;
-          final multiplier = _combo > 1 ? _combo : 1;
-          final scoreEarned = hitFish.spec.value * multiplier;
-          _sessionScore += scoreEarned;
-
-          _popups.add(PopupText(
-            Offset(hitFish.x, hitFish.y),
-            '+$scoreEarned${_combo > 1 ? " x$_combo" : ""}',
-            _combo > 2 ? const Color(0xFFFF5252) : const Color(0xFFFFD700),
-          ));
-        }
+  void _damageAt(Offset pos, int damage) {
+    ActiveFish? hit;
+    double bestDist = 55.0;
+    for (final f in _fishes) {
+      final d = (Offset(f.x, f.y) - pos).distance;
+      if (d < bestDist) {
+        bestDist = d;
+        hit = f;
       }
-      HapticFeedback.mediumImpact();
-    } else {
-      _bullets.add(BulletFx(boatPos, worldPos));
+    }
+    if (hit != null) _applyDamage(hit, damage);
+  }
+
+  void _areaDamage(Offset center, double radius, int damage) {
+    final targets = _fishes.where((f) => (Offset(f.x, f.y) - center).distance <= radius).toList();
+    for (final t in targets) {
+      _applyDamage(t, damage);
     }
   }
 
-  // ─────────────────────────── GAME SETUP ───────────────────────────────────
-  void _startFishing() {
+  void _applyDamage(ActiveFish f, int damage) {
+    f.currentHp -= damage;
+    _splashes.add(SplashFx(Offset(f.x, f.y)));
+
+    if (f.currentHp <= 0) {
+      _fishes.remove(f);
+
+      if (f.data.isJelly) {
+        // Jelly penalty
+        _sessionGain += f.data.value;
+        _popups.add(ScorePopup(
+          Offset(f.x, f.y),
+          '${f.data.value} \$',
+          const Color(0xFFFF1744),
+        ));
+      } else {
+        _comboCount++;
+        _comboTimer = 1.3;
+        final multiplier = _comboCount > 1 ? _comboCount : 1;
+        final score = f.data.value * multiplier;
+        _sessionGain += score;
+
+        _popups.add(ScorePopup(
+          Offset(f.x, f.y),
+          '+$score${_comboCount > 1 ? " x$_comboCount" : ""}',
+          _comboCount > 2 ? const Color(0xFFFF5252) : const Color(0xFFFFD700),
+        ));
+      }
+    }
+  }
+
+  // ─────────────────────────── GAME LAUNCH ──────────────────────────────────
+  void _startFishingSession() {
     _fishes.clear();
+    _pellets.clear();
     _splashes.clear();
-    _bullets.clear();
     _popups.clear();
-    _sessionScore = 0;
-    _combo = 0;
+    _sessionGain = 0;
+    _comboCount = 0;
+    _fuel = _maxFuel;
+    _isChainsawActive = false;
 
-    final fishCount = max(16, (_maxDepth / 20).round());
+    final fishCount = max(18, (_maxDepthMeters / 12).round());
     for (int i = 0; i < fishCount; i++) {
-      final depth = 20 + _rnd.nextDouble() * (_maxDepth - 40);
-
-      // Filter eligible specs for current depth
-      final eligible = kOriginalSpecs.where((s) => depth >= s.minDepth && depth <= s.maxDepth).toList();
-      final spec = eligible.isNotEmpty ? eligible[_rnd.nextInt(eligible.length)] : kOriginalSpecs[0];
+      final depth = 15.0 + _rnd.nextDouble() * (_maxDepthMeters - 20.0);
+      final eligible = kFishCatalog.where((s) => depth >= s.minDepth && depth <= s.maxDepth).toList();
+      final spec = eligible.isNotEmpty ? eligible[_rnd.nextInt(eligible.length)] : kFishCatalog[0];
 
       final dir = _rnd.nextBool() ? 1.0 : -1.0;
-      final speed = (spec.speed * 40 + _rnd.nextDouble() * 20) * dir;
+      final speed = (spec.speed * 42.0 + _rnd.nextDouble() * 20.0) * dir;
 
-      _fishes.add(FishEntity(
+      _fishes.add(ActiveFish(
         id: i,
-        spec: spec,
+        data: spec,
         x: _rnd.nextDouble() * _screenSize.width,
         y: depth,
         vx: speed,
@@ -584,7 +809,7 @@ class _RidiculousFishingGameState extends State<RidiculousFishingGame>
     _phase = GamePhase.descending;
   }
 
-  // ─────────────────────────── UI & INPUT ───────────────────────────────────
+  // ─────────────────────────── BUILD METHOD ─────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -594,21 +819,29 @@ class _RidiculousFishingGameState extends State<RidiculousFishingGame>
         return GestureDetector(
           onTapDown: (e) {
             _targetHookX = e.localPosition.dx;
-            if (_phase == GamePhase.airborne) _shoot(e.localPosition);
+            if (_phase == GamePhase.airborne) _fireWeapon(e.localPosition);
+            if (_phase == GamePhase.descending && _hasChainsawLure && _fuel > 0) {
+              setState(() => _isChainsawActive = true);
+            }
+          },
+          onTapUp: (_) {
+            if (_isChainsawActive) setState(() => _isChainsawActive = false);
           },
           onPanUpdate: (e) {
             _targetHookX = e.localPosition.dx;
-            if (_phase == GamePhase.airborne) _shoot(e.localPosition);
+            if (_phase == GamePhase.airborne && _selectedGun == 2) {
+              _fireWeapon(e.localPosition);
+            }
           },
           child: Stack(
             children: [
-              // Custom Painter with Authentic Vlambeer Colors & Assets
+              // Custom Painter Engine
               Positioned.fill(
                 child: CustomPaint(
                   painter: _RidiculousPainter(
                     fishes: _fishes,
                     splashes: _splashes,
-                    bullets: _bullets,
+                    pellets: _pellets,
                     popups: _popups,
                     phase: _phase,
                     hookX: _hookX,
@@ -616,18 +849,17 @@ class _RidiculousFishingGameState extends State<RidiculousFishingGame>
                     cameraY: _cameraY,
                     waveOffset: _waveOffset,
                     screenSize: _screenSize,
-                    gunLvl: _gunLvl,
-                    maxDepth: _maxDepth,
+                    isChainsawActive: _isChainsawActive,
                   ),
                 ),
               ),
 
-              // HUD
-              _buildHUD(),
+              // HUD & Fuel Meter
+              if (_phase != GamePhase.phoneMenu) _buildGameHUD(),
 
-              // Menus
-              if (_phase == GamePhase.menu || _phase == GamePhase.gameOver)
-                _buildMenuOverlay(),
+              // The Byrd Wood Phone Overlay Menu
+              if (_phase == GamePhase.phoneMenu || _phase == GamePhase.summary)
+                _buildPhoneInterface(),
             ],
           ),
         );
@@ -635,19 +867,19 @@ class _RidiculousFishingGameState extends State<RidiculousFishingGame>
     );
   }
 
-  Widget _buildHUD() {
+  // ─────────────────────────── HUD ─────────────────────────────────────────
+  Widget _buildGameHUD() {
     final depth = _hookY.round();
-    final caught = _fishes.where((f) => f.isCaught).length;
+    final caught = _fishes.where((f) => f.caught).length;
 
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   '\$$_money',
@@ -659,16 +891,16 @@ class _RidiculousFishingGameState extends State<RidiculousFishingGame>
                 ),
                 if (_phase == GamePhase.descending || _phase == GamePhase.ascending)
                   Text(
-                    '${depth}m  |  $caught/$_maxCaughtFish peixes',
+                    '${depth}m  |  $caught/$_maxCaughtFish',
                     style: const TextStyle(
                       fontFamily: '04B03',
                       color: Colors.white,
-                      fontSize: 16,
+                      fontSize: 18,
                     ),
                   ),
-                if (_phase == GamePhase.airborne && _combo > 1)
+                if (_phase == GamePhase.airborne && _comboCount > 1)
                   Text(
-                    'COMBO x$_combo!',
+                    'COMBO x$_comboCount!',
                     style: const TextStyle(
                       fontFamily: '04B03',
                       color: Color(0xFFFF3D00),
@@ -677,146 +909,390 @@ class _RidiculousFishingGameState extends State<RidiculousFishingGame>
                   ),
               ],
             ),
+            // Chainsaw Fuel Gauge
+            if (_phase == GamePhase.descending && _hasChainsawLure) ...[
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  const Text('FUEL: ', style: TextStyle(fontFamily: '04B03', color: Colors.white70, fontSize: 10)),
+                  Container(
+                    width: 120,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: Colors.white12,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: FractionallySizedBox(
+                      alignment: Alignment.centerLeft,
+                      widthFactor: (_fuel / _maxFuel).clamp(0.0, 1.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: _isChainsawActive ? const Color(0xFFFF3D00) : const Color(0xFF00E676),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildMenuOverlay() {
-    final isOver = _phase == GamePhase.gameOver;
+  // ─────────────────────────── BYRD WOOD PHONE UI ───────────────────────────
+  Widget _buildPhoneInterface() {
     return Center(
       child: Container(
-        width: 320,
-        padding: const EdgeInsets.all(24),
+        width: 340,
+        height: 620,
+        margin: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
-          color: const Color(0xEE0B192E),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFFF9E00), width: 2),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFFFF9E00).withOpacity(0.3),
-              blurRadius: 24,
-            ),
+          color: const Color(0xFF3E2723), // Wood shell
+          borderRadius: BorderRadius.circular(36),
+          border: Border.all(color: const Color(0xFF2E1C0C), width: 6),
+          boxShadow: const [
+            BoxShadow(color: Colors.black87, blurRadius: 28, offset: Offset(0, 12)),
           ],
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              isOver ? 'PESCA CONCLUIDA!' : 'RIDICULOUS FISHING',
-              style: const TextStyle(
-                fontFamily: '04B03',
-                color: Color(0xFFFF9E00),
-                fontSize: 22,
-                letterSpacing: 2,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 10),
-            if (isOver) ...[
-              Text(
-                'Pontuacao: +$_sessionScore \$',
-                style: const TextStyle(
-                  fontFamily: '04B03',
-                  color: Colors.white,
-                  fontSize: 16,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(30),
+          child: Column(
+            children: [
+              // Phone Top Bar
+              Container(
+                height: 38,
+                color: const Color(0xFF1E130A),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('BYRD PHONE', style: TextStyle(fontFamily: '04B03', color: Color(0xFFFF9E00), fontSize: 11)),
+                    Text('\$$_money', style: const TextStyle(fontFamily: '04B03', color: Colors.white, fontSize: 13)),
+                  ],
                 ),
               ),
-              const SizedBox(height: 14),
+
+              // Phone Screen Body
+              Expanded(
+                child: Container(
+                  color: const Color(0xFF111D2E),
+                  child: _buildPhoneTabContent(),
+                ),
+              ),
+
+              // Phone Bottom Navigation Dock
+              Container(
+                height: 62,
+                color: const Color(0xFF1E130A),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _phoneNavBtn(0, Icons.sailing, 'PESCAR'),
+                    _phoneNavBtn(1, Icons.menu_book, 'PEIXES'),
+                    _phoneNavBtn(2, Icons.shopping_bag, 'LOJA'),
+                    _phoneNavBtn(3, Icons.chat, 'BYRDR'),
+                  ],
+                ),
+              ),
             ],
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF9E00),
-                foregroundColor: Colors.black,
-                padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              onPressed: _startFishing,
-              child: const Text(
-                'LANCAR LINHA!',
-                style: TextStyle(fontFamily: '04B03', fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Divider(color: Colors.white24),
-            const Text('UPGRADES', style: TextStyle(fontFamily: '04B03', color: Colors.white70, fontSize: 13)),
-            const SizedBox(height: 8),
-            _upgradeBtn('Linha Mais Funda (+150m)', 40 * (_depthLvl + 1), () {
-              if (_money >= 40 * (_depthLvl + 1)) {
-                setState(() {
-                  _money -= 40 * (_depthLvl + 1);
-                  _depthLvl++;
-                });
-                _saveState();
-              }
-            }),
-            _upgradeBtn('Mais Anzois (+3)', 50 * (_hooksLvl + 1), () {
-              if (_money >= 50 * (_hooksLvl + 1)) {
-                setState(() {
-                  _money -= 50 * (_hooksLvl + 1);
-                  _hooksLvl++;
-                });
-                _saveState();
-              }
-            }),
-            _upgradeBtn('Arma (+Dano)', 80 * (_gunLvl + 1), () {
-              if (_money >= 80 * (_gunLvl + 1)) {
-                setState(() {
-                  _money -= 80 * (_gunLvl + 1);
-                  _gunLvl++;
-                });
-                _saveState();
-              }
-            }),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _upgradeBtn(String label, int cost, VoidCallback onTap) {
-    final canBuy = _money >= cost;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: OutlinedButton(
-        style: OutlinedButton.styleFrom(
-          side: BorderSide(color: canBuy ? const Color(0xFFFF9E00) : Colors.white24),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        ),
-        onPressed: canBuy ? onTap : null,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label, style: const TextStyle(color: Colors.white, fontSize: 11)),
-            Text('$cost \$', style: TextStyle(color: canBuy ? const Color(0xFFFF9E00) : Colors.white38, fontWeight: FontWeight.bold)),
-          ],
-        ),
+  Widget _phoneNavBtn(int tabIndex, IconData icon, String label) {
+    final active = _phoneTab == tabIndex;
+    return GestureDetector(
+      onTap: () => setState(() => _phoneTab = tabIndex),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: active ? const Color(0xFFFF9E00) : Colors.white38, size: 22),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(
+              fontFamily: '04B03',
+              color: active ? const Color(0xFFFF9E00) : Colors.white38,
+              fontSize: 8,
+            ),
+          ),
+        ],
       ),
+    );
+  }
+
+  Widget _buildPhoneTabContent() {
+    switch (_phoneTab) {
+      case 0: return _buildPlayScreen();
+      case 1: return _buildFishopediaScreen();
+      case 2: return _buildShopScreen();
+      case 3: return _buildByrdrScreen();
+      default: return _buildPlayScreen();
+    }
+  }
+
+  // 1. PLAY / MAPS
+  Widget _buildPlayScreen() {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text(
+            'HOME WATERS',
+            style: TextStyle(fontFamily: '04B03', color: Color(0xFFFF9E00), fontSize: 24),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Linha: ${_maxDepthMeters.round()}m  |  Anzóis: $_maxCaughtFish',
+            style: const TextStyle(fontFamily: '04B03', color: Colors.white70, fontSize: 12),
+          ),
+          const SizedBox(height: 28),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF9E00),
+              foregroundColor: Colors.black,
+              padding: const EdgeInsets.symmetric(horizontal: 42, vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              elevation: 8,
+            ),
+            onPressed: _startFishingSession,
+            child: const Text(
+              'LANCAR LINHA!',
+              style: TextStyle(fontFamily: '04B03', fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 2. FISHOPEDIA
+  Widget _buildFishopediaScreen() {
+    return ListView.builder(
+      padding: const EdgeInsets.all(12),
+      itemCount: kFishCatalog.length,
+      itemBuilder: (_, i) {
+        final f = kFishCatalog[i];
+        final discovered = _discoveredFish.contains(f.key);
+        return Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1B2A40),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: discovered ? const Color(0xFFFF9E00).withOpacity(0.5) : Colors.white10),
+          ),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 44,
+                height: 44,
+                child: discovered
+                    ? Image.asset('assets/original_fish/${f.sprite}')
+                    : const Icon(Icons.help_outline, color: Colors.white24, size: 28),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      discovered ? f.displayName : '???',
+                      style: TextStyle(
+                        fontFamily: '04B03',
+                        color: discovered ? const Color(0xFFFF9E00) : Colors.white38,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      discovered ? f.description : 'Ainda não pescado em Home Waters.',
+                      style: const TextStyle(color: Colors.white60, fontSize: 10),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // 3. STORE
+  Widget _buildShopScreen() {
+    return ListView(
+      padding: const EdgeInsets.all(12),
+      children: [
+        const Text('CARRETEIS (LINHAS)', style: TextStyle(fontFamily: '04B03', color: Color(0xFFFF9E00), fontSize: 11)),
+        const SizedBox(height: 6),
+        _shopItem('100m Line', '40 \$', 40, 'reel_1', () {
+          setState(() {
+            _money -= 40;
+            _selectedReel = 1;
+            _ownedItems.add('reel_1');
+          });
+          _saveGame();
+        }),
+        _shopItem('200m Line', '250 \$', 250, 'reel_2', () {
+          setState(() {
+            _money -= 250;
+            _selectedReel = 2;
+            _ownedItems.add('reel_2');
+          });
+          _saveGame();
+        }),
+        _shopItem('300m Line', '500 \$', 500, 'reel_3', () {
+          setState(() {
+            _money -= 500;
+            _selectedReel = 3;
+            _ownedItems.add('reel_3');
+          });
+          _saveGame();
+        }),
+
+        const SizedBox(height: 14),
+        const Text('ARMAS DE DISPARO', style: TextStyle(fontFamily: '04B03', color: Color(0xFFFF9E00), fontSize: 11)),
+        const SizedBox(height: 6),
+        _shopItem('Shotgun (9 chumbos)', '200 \$', 200, 'gun_1', () {
+          setState(() {
+            _money -= 200;
+            _selectedGun = 1;
+            _ownedItems.add('gun_1');
+          });
+          _saveGame();
+        }),
+        _shopItem('Uzi (Rajada Rapida)', '580 \$', 580, 'gun_2', () {
+          setState(() {
+            _money -= 580;
+            _selectedGun = 2;
+            _ownedItems.add('gun_2');
+          });
+          _saveGame();
+        }),
+        _shopItem('Magnum (Dano 18)', '3000 \$', 3000, 'gun_3', () {
+          setState(() {
+            _money -= 3000;
+            _selectedGun = 3;
+            _ownedItems.add('gun_3');
+          });
+          _saveGame();
+        }),
+        _shopItem('Bazooka (Dano 36)', '50000 \$', 50000, 'gun_4', () {
+          setState(() {
+            _money -= 50000;
+            _selectedGun = 4;
+            _ownedItems.add('gun_4');
+          });
+          _saveGame();
+        }),
+
+        const SizedBox(height: 14),
+        const Text('ISCAS ESPECIAIS', style: TextStyle(fontFamily: '04B03', color: Color(0xFFFF9E00), fontSize: 11)),
+        const SizedBox(height: 6),
+        _shopItem('Chainsaw Lure', '120 \$', 120, 'lure_chainsaw', () {
+          setState(() {
+            _money -= 120;
+            _hasChainsawLure = true;
+            _ownedItems.add('lure_chainsaw');
+          });
+          _saveGame();
+        }),
+      ],
+    );
+  }
+
+  Widget _shopItem(String name, String costStr, int cost, String itemId, VoidCallback onBuy) {
+    final owned = _ownedItems.contains(itemId);
+    final canBuy = _money >= cost;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1B2A40),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(name, style: const TextStyle(fontFamily: '04B03', color: Colors.white, fontSize: 11)),
+          owned
+              ? const Text('COMPRADO', style: TextStyle(fontFamily: '04B03', color: Color(0xFF00E676), fontSize: 10))
+              : ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: canBuy ? const Color(0xFFFF9E00) : Colors.white12,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  ),
+                  onPressed: canBuy ? onBuy : null,
+                  child: Text(costStr, style: const TextStyle(fontFamily: '04B03', fontSize: 10)),
+                ),
+        ],
+      ),
+    );
+  }
+
+  // 4. BYRDR
+  Widget _buildByrdrScreen() {
+    final tweets = [
+      {'user': '@vicebeak', 'msg': 'Yo, Chirp! Anyone out at Home Waters?'},
+      {'user': '@OG_RodAndGun', 'msg': 'Breaking Bad! Auuugh we need satellite on this ship.'},
+      {'user': '@BigInASmallPond', 'msg': 'My naturopath tells me I have a gluten allergy.'},
+      {'user': '@GreatOceanDeals', 'msg': 'Feeling lonely #lovesick #wheresmyshipman #port2port'},
+      {'user': '@RodAndGunMan', 'msg': 'Ridiculous. Fishing for compliments.'},
+    ];
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(12),
+      itemCount: tweets.length,
+      itemBuilder: (_, i) {
+        final t = tweets[i];
+        return Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1B2A40),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(t['user']!, style: const TextStyle(fontFamily: '04B03', color: Color(0xFFFF9E00), fontSize: 11)),
+              const SizedBox(height: 4),
+              Text(t['msg']!, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+            ],
+          ),
+        );
+      },
     );
   }
 }
 
-// ─────────────────────────── CUSTOM PAINTER ─────────────────────────────────
+// ─────────────────────────── GAME CANVAS PAINTER ────────────────────────────
 class _RidiculousPainter extends CustomPainter {
-  final List<FishEntity> fishes;
-  final List<BloodSplash> splashes;
-  final List<BulletFx> bullets;
-  final List<PopupText> popups;
+  final List<ActiveFish> fishes;
+  final List<SplashFx> splashes;
+  final List<ShotPellet> pellets;
+  final List<ScorePopup> popups;
   final GamePhase phase;
   final double hookX;
   final double hookY;
   final double cameraY;
   final double waveOffset;
   final Size screenSize;
-  final int gunLvl;
-  final double maxDepth;
+  final bool isChainsawActive;
 
   _RidiculousPainter({
     required this.fishes,
     required this.splashes,
-    required this.bullets,
+    required this.pellets,
     required this.popups,
     required this.phase,
     required this.hookX,
@@ -824,8 +1300,7 @@ class _RidiculousPainter extends CustomPainter {
     required this.cameraY,
     required this.waveOffset,
     required this.screenSize,
-    required this.gunLvl,
-    required this.maxDepth,
+    required this.isChainsawActive,
   });
 
   double get surfaceY => screenSize.height * 0.38;
@@ -836,7 +1311,7 @@ class _RidiculousPainter extends CustomPainter {
     final mgr = SpriteManager.instance;
     final sy0 = worldToScreenY(0);
 
-    // 1. SKY GRADIENT (Exact Vlambeer pond.xml palette)
+    // 1. EXACT VLAMBEER SKY PALETTE (pond.xml)
     if (sy0 > 0) {
       final skyRect = Rect.fromLTWH(0, 0, size.width, sy0);
       canvas.drawRect(
@@ -846,16 +1321,16 @@ class _RidiculousPainter extends CustomPainter {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFF00FFFF), // r=0, g=255, b=255
-              Color(0xFF00C5F0), // r=0, g=197, b=240
-              Color(0xFF506CE0), // r=80, g=108, b=224
-              Color(0xFF6C41BA), // r=108, g=65, b=186
+              Color(0xFF00FFFF),
+              Color(0xFF00C5F0),
+              Color(0xFF506CE0),
+              Color(0xFF6C41BA),
             ],
           ).createShader(skyRect),
       );
     }
 
-    // 2. SEA GRADIENT (Exact Vlambeer pond.xml palette)
+    // 2. EXACT VLAMBEER SEA PALETTE (pond.xml)
     final waterTop = max(0.0, sy0);
     final waterRect = Rect.fromLTWH(0, waterTop, size.width, size.height - waterTop);
     canvas.drawRect(
@@ -865,42 +1340,35 @@ class _RidiculousPainter extends CustomPainter {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Color(0xFF00FD9E), // r=0, g=253, b=158
-            Color(0xFF00BC8F), // r=0, g=188, b=143
-            Color(0xFF6188B8), // r=97, g=136, b=184
-            Color(0xFF9955B9), // r=153, g=85, b=185
-            Color(0xFF1B4F5A), // r=27, g=79, b=90
-            Color(0xFF00312A), // r=0, g=49, b=42
-            Color(0xFF021114), // r=2, g=17, b=20
+            Color(0xFF00FD9E),
+            Color(0xFF00BC8F),
+            Color(0xFF6188B8),
+            Color(0xFF9955B9),
+            Color(0xFF1B4F5A),
+            Color(0xFF00312A),
+            Color(0xFF021114),
           ],
         ).createShader(waterRect),
     );
 
-    // 3. WAVES ON SURFACE
+    // 3. MOVING SURFACE WAVE
     final waveSprite = mgr.get('wave.png');
     if (waveSprite != null) {
       final waveW = size.width * 1.3;
-      final waveH = 26.0;
       canvas.drawImageRect(
         waveSprite,
         Rect.fromLTWH(0, 0, waveSprite.width.toDouble(), waveSprite.height.toDouble()),
-        Rect.fromLTWH(waveOffset - 20, sy0 - 13, waveW, waveH),
+        Rect.fromLTWH(waveOffset - 20, sy0 - 13, waveW, 26.0),
         Paint()..color = Colors.white.withOpacity(0.9),
-      );
-    } else {
-      canvas.drawLine(
-        Offset(0, sy0),
-        Offset(size.width, sy0),
-        Paint()..color = Colors.white70..strokeWidth = 3,
       );
     }
 
-    // 4. FISHES (AUTHENTIC VLAMBEER APK SPRITES)
+    // 4. ACTIVE FISHES
     for (final f in fishes) {
       final screenY = worldToScreenY(f.y);
       if (screenY < -120 || screenY > size.height + 120) continue;
 
-      final sprite = mgr.get(f.spec.sprite);
+      final sprite = mgr.get(f.data.sprite);
       if (sprite != null) {
         canvas.save();
         canvas.translate(f.x, screenY);
@@ -921,32 +1389,29 @@ class _RidiculousPainter extends CustomPainter {
       }
     }
 
-    // 5. FISHING LINE & HOOK
+    // 5. FISHING LINE & LURE / CHAINSAW
     final boatTip = Offset(size.width * 0.5 + 46, sy0 - 24);
     final isHookActive = phase == GamePhase.descending || phase == GamePhase.ascending;
     final hookScreenPos = isHookActive ? Offset(hookX, worldToScreenY(hookY)) : Offset(boatTip.dx, sy0 - 5);
 
-    // Fishing line
     canvas.drawLine(boatTip, hookScreenPos, Paint()..color = Colors.white70..strokeWidth = 1.6);
 
-    // Hook sprite
     if (isHookActive) {
-      final hookSprite = mgr.get(hookY > 200 ? 'deephook.png' : 'hook.png');
-      if (hookSprite != null) {
-        final hw = 24.0;
-        final hh = 34.0;
+      final lureKey = isChainsawActive ? 'lure4_swipe@2x.png' : 'lure0@2x.png';
+      final lureSprite = mgr.get(lureKey) ?? mgr.get('hook.png');
+      if (lureSprite != null) {
+        final lw = 28.0;
+        final lh = 38.0;
         canvas.drawImageRect(
-          hookSprite,
-          Rect.fromLTWH(0, 0, hookSprite.width.toDouble(), hookSprite.height.toDouble()),
-          Rect.fromLTWH(hookScreenPos.dx - hw / 2, hookScreenPos.dy, hw, hh),
+          lureSprite,
+          Rect.fromLTWH(0, 0, lureSprite.width.toDouble(), lureSprite.height.toDouble()),
+          Rect.fromLTWH(hookScreenPos.dx - lw / 2, hookScreenPos.dy, lw, lh),
           Paint(),
         );
-      } else {
-        canvas.drawCircle(hookScreenPos, 7, Paint()..color = Colors.redAccent);
       }
     }
 
-    // 6. SHIP & FISHERMAN SPRITE
+    // 6. BOAT & WEAPON
     final shipSprite = mgr.get('ship.png');
     final bx = size.width * 0.5;
     final by = sy0;
@@ -961,59 +1426,48 @@ class _RidiculousPainter extends CustomPainter {
       );
     }
 
-    // Gun sprite in boat
-    final gunSprite = mgr.get(gunLvl > 0 ? 'machineGun.png' : 'singleShot.png');
-    if (gunSprite != null) {
-      canvas.drawImageRect(
-        gunSprite,
-        Rect.fromLTWH(0, 0, gunSprite.width.toDouble(), gunSprite.height.toDouble()),
-        Rect.fromLTWH(bx + 18, by - 48, 42, 22),
-        Paint(),
-      );
-    }
-
-    // 7. BULLETS & SHOOTING EFFECTS
-    for (final b in bullets) {
-      final alpha = (1.0 - (b.t / 0.12)).clamp(0.0, 1.0);
+    // 7. WEAPON PELLETS / BULLETS
+    for (final b in pellets) {
+      final a = (1.0 - (b.t / 0.12)).clamp(0.0, 1.0);
       final bulletSprite = mgr.get('bullet.png');
-      final targetPos = Offset(b.to.dx, worldToScreenY(b.to.dy));
+      final target = Offset(b.to.dx, worldToScreenY(b.to.dy));
       if (bulletSprite != null) {
         canvas.drawImageRect(
           bulletSprite,
           Rect.fromLTWH(0, 0, bulletSprite.width.toDouble(), bulletSprite.height.toDouble()),
-          Rect.fromCenter(center: targetPos, width: 14, height: 14),
-          Paint()..color = Colors.white.withOpacity(alpha),
+          Rect.fromCenter(center: target, width: 14, height: 14),
+          Paint()..color = Colors.white.withOpacity(a),
         );
       }
       canvas.drawLine(
         Offset(b.from.dx, b.from.dy - cameraY + surfaceY),
-        targetPos,
+        target,
         Paint()
-          ..color = Colors.yellowAccent.withOpacity(alpha)
-          ..strokeWidth = 3,
+          ..color = Colors.yellowAccent.withOpacity(a)
+          ..strokeWidth = 2.5,
       );
     }
 
-    // 8. BLOOD SPLASHES (SPRITES)
+    // 8. BLOOD SPLATTERS
     final bloodSprite = mgr.get('blood.png');
     for (final s in splashes) {
-      final a = (1.0 - (s.time / s.maxTime)).clamp(0.0, 1.0);
-      final sy = worldToScreenY(s.position.dy);
+      final a = (1.0 - s.t).clamp(0.0, 1.0);
+      final sy = worldToScreenY(s.pos.dy);
       if (bloodSprite != null) {
-        final bw = 46.0 * (1.0 + s.time * 0.5);
+        final bw = 48.0 * (1.0 + s.t * 0.4);
         canvas.drawImageRect(
           bloodSprite,
           Rect.fromLTWH(0, 0, bloodSprite.width.toDouble(), bloodSprite.height.toDouble()),
-          Rect.fromCenter(center: Offset(s.position.dx, sy), width: bw, height: bw),
+          Rect.fromCenter(center: Offset(s.pos.dx, sy), width: bw, height: bw),
           Paint()..color = Colors.white.withOpacity(a),
         );
       }
     }
 
-    // 9. POPUP TEXTS
+    // 9. POPUPS
     for (final p in popups) {
-      final a = (1.0 - (p.t / 1.0)).clamp(0.0, 1.0);
-      final sy = worldToScreenY(p.position.dy) - p.t * 50;
+      final a = (1.0 - p.t).clamp(0.0, 1.0);
+      final sy = worldToScreenY(p.pos.dy) - p.t * 50;
       final tp = TextPainter(
         text: TextSpan(
           text: p.text,
@@ -1025,7 +1479,7 @@ class _RidiculousPainter extends CustomPainter {
         ),
         textDirection: TextDirection.ltr,
       )..layout();
-      tp.paint(canvas, Offset(p.position.dx - tp.width / 2, sy));
+      tp.paint(canvas, Offset(p.pos.dx - tp.width / 2, sy));
     }
   }
 

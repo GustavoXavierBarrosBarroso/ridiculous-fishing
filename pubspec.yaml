@@ -1,5 +1,5 @@
 name: ridiculous_fishing
-description: Ridiculous Fishing authentic replica with original Vlambeer assets, physics and colors!
+description: Authentic 1:1 Ridiculous Fishing replica with exact Vlambeer specs, wood phone UI, Fish-o-pedia and weapon mechanics!
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -16,6 +16,8 @@ flutter:
   assets:
     - assets/images/
     - assets/original_fish/
+    - assets/phone/
+    - assets/lures/
     - assets/fonts/
   fonts:
     - family: 04B03
