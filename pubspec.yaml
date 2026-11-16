@@ -1,5 +1,5 @@
 name: ridiculous_fishing
-description: Ridiculous Fishing replica with authentic original sprites and mechanics!
+description: Ridiculous Fishing authentic replica with original Vlambeer assets, physics and colors!
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -15,8 +15,12 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    - assets/original_fish/
     - assets/fonts/
   fonts:
+    - family: 04B03
+      fonts:
+        - asset: assets/fonts/04B_03__.ttf
     - family: Villa
       fonts:
         - asset: assets/fonts/Villa.ttf
